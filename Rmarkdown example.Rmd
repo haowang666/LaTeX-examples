@@ -1,0 +1,115 @@
+---
+title: "POS503 Assignment 1"
+author: "Hao Wang"
+date: "Sep. 4, 2016"
+output: pdf_document
+header-includes: \usepackage{float}
+---
+
+Analysis is done in R, required packages for replcating results are listed. Document is created by R Markdown.
+
+```{r setup, echo=TRUE, warning=FALSE, message=FALSE}
+#setwd("D:/Dropbox/2016 Fall/POS 503 Inquiry/Assignment/Assignment 1")
+#setwd("~/Dropbox/2016 Fall/POS 503 Inquiry/Assignment/Assignment 1")options(digits=10)
+library(ggplot2)
+library(knitr)
+library(rmarkdown)
+library(foreign)
+```
+
+#Accessing Data
+The following R chunk load data from Baylor Regilious Survey. Baylor Religious Study is a comprehensive analysis on religious beliefs in the United States. For detailed explanation please refer to <http://www.thearda.com/Archive/Files/Descriptions/BAYLORW2.asp>. Total sample size is 1648 adults, with 318 variables, survey was conducted by Gallup. 
+
+
+```{r}
+#The first step is to load Byalor Religious Survey 2005 (I)
+mydata <- read.dta("http://www.thearda.com/download/download.aspx?file=Baylor%20Religion%20Survey,%20Wave%20II%20(2007).DTA")
+```
+
+#Scatter Plot
+Because the raw file includes some missing points, I create a new dataset of potential interesting variables without missing data.
+
+```{r, warning=FALSE, message=FALSE}
+plotdata <- mydata[, c('relgious', 'attend', 'gaymarr', 'gayborn',
+                       'votefem', 'partyid')]
+#religious: how religious you are
+#attend:    how often do you attend church
+#gaymarr:   gay marriage should be legal
+#gayborn:   people are born either homo or heterosexual
+#vetefem:   would you vote for a female cadidate nominated by your party
+#partyid:   democract or republican
+plotdata <- na.omit(plotdata)
+summary(plotdata)
+plotdata2=as.data.frame(sapply(plotdata, as.numeric))#sapply function returns matrix with same
+#legnth, and in the same time converted factors into numeric numbers by as.numeric command
+```
+
+##The first plot is religious belief and gay marriage.
+
+```{r, warning=FALSE}
+table(plotdata$gaymarr, plotdata$relgious)
+relig.gaymarr <- ggplot(data=plotdata, aes(x = relgious, y = gaymarr)) +
+                 geom_count() +
+                 scale_size_area()
+relig.gaymarr
+
+```
+From the table and plot, we can observe an negative relation between religious belief and support for gay marriage. 
+
+##The second plot is religious belief and vote for female candidate.
+
+```{r, warning=FALSE}
+table(plotdata$votefem, plotdata$relgious)
+relig.votefem <- ggplot(data=plotdata, aes(x = relgious, y = votefem)) +
+                 geom_count() +
+                 scale_size_area()
+relig.votefem
+
+```
+
+Result here is not very obvious, for a detailed analysis I perform the following steps.
+
+```{r}
+table(plotdata2$votefem, plotdata2$relgious)
+table(plotdata$votefem, plotdata$relgious)
+plotdata2$fem <- (plotdata2$votefem -2)^2
+#This step is to change the levels of fem variable.
+plotdata3     <- data.frame(subset(plotdata2, plotdata2[ , 'relgious'] < 5))
+#This step is to get rid of the unknown option
+```
+
+Then use probit funtion to predict probability
+
+```{r}
+
+Myprobit <- glm(fem ~ relgious, 
+                family=binomial(link="probit"), data=plotdata3)
+relgious  <-  seq(from = 1, to =  4, by = 0.01)
+newdata1 <-  data.frame(relgious)
+summary(Myprobit)
+
+```
+
+This step is to display the marginal effect.
+```{r}
+
+p1 = predict.glm(Myprobit,newdata = newdata1, type="response", se.fit=TRUE)
+mar1 = p1$fit
+up   = mar1 + 1.96*p1$se.fit
+low  = mar1 - 1.96*p1$se.fit
+
+Marplot <- ggplot(data=newdata1, aes(x = relgious))+ geom_line(aes(y =mar1)) + 
+  geom_line(aes(y =up), linetype="dashed") + 
+  geom_line(aes(y =low), linetype="dashed") + 
+  xlab("Religious Beliefs (ranging from not at all religious to very religious)") +
+  ylab("Predicted Probability") +
+  ggtitle("Marginal Effect of Religious Beliefs on Female Candidate Vote Intention")
+  #+geom_histogram(sides="b")+
+  #geom_rug()
+
+Marplot
+```
+
+As we can see from the Myprobit result as well as the marginal effect plot, religious beliefs has a significant effect on decreasing the intention of voting for a female candidate. 
+
+
