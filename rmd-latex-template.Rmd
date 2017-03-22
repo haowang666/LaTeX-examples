@@ -1,0 +1,33 @@
+---
+output: 
+  bookdown::pdf_document2:
+    fig_caption: yes
+    fig_height: 5
+    fig_width: 8
+    keep_tex: yes
+    number_sections: yes
+    citation_package: natbib
+
+title: "Ferra and Finan"
+author: "Hao Wang"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+fontsize: 12pt
+papersize: letter
+fontfamily: mathpazo
+#bibliography: references.bib
+#biblio-style: authoryear-comp
+subparagraph: true
+geometry: margin=1in
+toc: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<!--\begin{abstract}
+ A brief summary of our ideas
+\end{abstract} -->
+
+
+
